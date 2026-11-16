@@ -2,6 +2,7 @@ import {readCameraScenes,saveGeneratedScenes} from './savedCameraScenes';
 import {useEffect,useRef,useState} from 'react';
 import {ChevronDown} from 'lucide-react';
 import {useEditor} from './store';
+import {useVideoRender,videoAbort} from './videoRender';
 import {useNetSelection} from './wireAnimation';
 import {backgroundCss,backgroundSolidColor,backgroundStops,defaultVideoSettings,isHexColor,validSettings,videoPresets,videoFilename,VIDEO_BACKGROUND_PRESETS,type VideoSettings} from './cinematic';
 import type {CinematicRenderer,Progress,VideoFile} from './videoExport';
@@ -9,8 +10,10 @@ const storageKey='c3d-video-preset-v1';
 function loadSettings(value?:unknown){if(value!==undefined)return validSettings(value);try{return validSettings(JSON.parse(localStorage.getItem(storageKey)??'null'))}catch{return {...defaultVideoSettings}}}
 const rgbText=(hex:string)=>{const value=Number.parseInt(hex.slice(1),16);return `${value>>16} Â· ${value>>8&255} Â· ${value&255}`};
 export function AutoVideoControls(){
- const project=useEditor(s=>s.project),selected=useNetSelection(s=>s.ids);const [settings,setSettings]=useState(()=>loadSettings(project.presentation?.video)),[open,setOpen]=useState(false),[progress,setProgress]=useState<Progress|null>(null),[message,setMessage]=useState(''),[caps,setCaps]=useState<{mp4:boolean;webm:boolean}|null>(null),[direct,setDirect]=useState(false);
- const abort=useRef<AbortController|null>(null),preview=useRef<CinematicRenderer|null>(null),host=useRef<HTMLDivElement>(null),[duration,setDuration]=useState(0),[time,setTime]=useState(0),[revision,setRevision]=useState(0),[shotId,setShotId]=useState('');
+ const project=useEditor(s=>s.project),selected=useNetSelection(s=>s.ids);const [settings,setSettings]=useState(()=>loadSettings(project.presentation?.video)),[open,setOpen]=useState(false),[caps,setCaps]=useState<{mp4:boolean;webm:boolean}|null>(null),[direct,setDirect]=useState(false);
+ const progress=useVideoRender(s=>s.progress),message=useVideoRender(s=>s.message);
+ const setProgress=(value:Progress|null)=>useVideoRender.setState({progress:value}),setMessage=(value:string)=>useVideoRender.setState({message:value});
+ const abort=videoAbort,preview=useRef<CinematicRenderer|null>(null),host=useRef<HTMLDivElement>(null),[duration,setDuration]=useState(0),[time,setTime]=useState(0),[revision,setRevision]=useState(0),[shotId,setShotId]=useState('');
  const [hexDraft,setHexDraft]=useState(settings.customSolidColor),[hexError,setHexError]=useState(false);
  const busy=!!progress&&progress.stage!=='Complete',backgroundDescription=backgroundSolidColor(settings)??(backgroundStops(settings)?.join(' â†’ ')??'PNG alpha');
  useEffect(()=>{if(project.presentation?.video!==undefined)return;try{localStorage.setItem(storageKey,JSON.stringify(settings))}catch{/* local storage full */}},[settings,project.presentation?.video]);

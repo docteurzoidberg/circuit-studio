@@ -104,6 +104,7 @@ Drag the grip in the Connections table to set the one-by-one net animation seque
 **Auto Video** generates a silent, native-resolution wiring tutorial directly from the current circuit. It plans cameras from real CAD bounds and pin anchors, reveals saved wire routes in saved order, composites technical labels into every frame, and muxes a playable MP4. Optional settings provide WebM/PNG fallback, 1080p/1440p/4K, 24/30/60 FPS, preview seeking, shot overrides and reusable presets. Original editor animation controls remain available.
 
 - [User workflow and presets](docs/AUTO_VIDEO_GENERATOR.md)
+- [Automation API for scripts](docs/AUTOMATION_API.md)
 - [Video background presets, gradients, floor/grid controls, alpha limits and saved settings](docs/VIDEO_BACKGROUNDS.md)
 - [Automatic camera planning and limitations](docs/AUTO_CAMERA_PLANNING.md)
 - [Deterministic timeline](docs/ANIMATION_TIMELINE.md)

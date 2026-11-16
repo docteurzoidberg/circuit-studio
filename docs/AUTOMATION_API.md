@@ -66,3 +66,40 @@ await browser.close();
 
 Video encoding uses WebCodecs: run a browser with hardware acceleration available, and check
 `capabilities()` first on unfamiliar machines.
+
+## Bridge
+
+The API above is called from inside the page, so a tool outside the browser has to launch and drive one
+(Playwright, DevTools Protocol). The bridge turns this around: **the page connects to the tool**, and the tool
+calls the same API through that connection. Nothing launches or drives a browser; the visitor only opens a link,
+in the browser they already use.
+
+```text
+local tool (command line, agent tool server)         Circuit Studio page
+  listens on ws://127.0.0.1:<port>         <──────── connects (link opened by the visitor)
+  {id, method, params}                     ────────> runs window.circuitStudio[method](...params)
+  {id, result} / {id, error} / {id, progress} <───── answers
+```
+
+- **Opt-in, from the link**: the bridge starts only when the URL fragment holds
+  `#bridge=ws://127.0.0.1:<port>&token=<token>`, for example
+  `https://<site>/#bridge=ws://127.0.0.1:5199&token=3f9c…`. The fragment is never sent to the web server.
+  Without it, nothing changes.
+- **This machine only**: the page connects only to a loopback address (`127.0.0.1`, `localhost`, `[::1]`) over
+  `ws:`, so a link cannot make it talk to a remote server.
+- **Token**: the page's first message is `{type: "hello", token, protocol: "circuit-studio-bridge/1", api: 1}`; the tool closes the
+  connection unless the token is the one it put in the link (and it checks the page's `Origin`). Once it accepts
+  the page, it may send `{type: "welcome", client: "<its name>"}`. Other pages open
+  in the browser cannot use the tool, and other tools cannot use the page.
+- **Requests**: `{id, method, params}` with `method` among `ready`, `openProject`, `getProject`, `listParts`,
+  `capabilities`, `renderImage`, `renderVideo`, `planRoutes`, `videoSettings`. Answers are `{id, result}` or
+  `{id, error: {message}}`; a `Blob` in a result (image, video) is sent as `{$blob: {type, base64}}`.
+  `renderVideo` also sends `{id, progress}` while it runs, and `{cancel: id}` stops it.
+- **In the header**: while the bridge is on, a badge next to the project name says so ("Driven by <tool>",
+  "<tool> disconnected, retrying"), so the visitor always sees that a tool drives the page.
+- **Reconnection**: when the tool stops or restarts, the page reconnects every 2 s, so a long-lived tab picks up a restarted tool by itself. It
+  stops retrying when the tool closes the connection with code 4000 (another tab took over) or 4001 (token
+  refused, e.g. an outdated link).
+- **Browsers**: from a page served over `https`, connecting to `127.0.0.1` is allowed (loopback counts as a secure
+  origin), but recent Chrome and Edge ask the visitor once whether the site may reach apps on this device. Served
+  from the same machine (`http://localhost`), there is no prompt.
